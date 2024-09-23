@@ -1,2 +1,14 @@
 streamlit
-openai
+python-dotenv
+google-generativeai
+notion-client
+langchain
+langchain-google-genai
+langchain-community
+langchain-core
+langchainhub
+langchain_google_community
+langchain_text_splitters
+opencv-python-headless
+faiss-cpu
+langchain_googledrive
