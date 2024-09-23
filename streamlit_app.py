@@ -1,7 +1,9 @@
 import streamlit as st
 import os
 import json
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 import io
@@ -14,6 +16,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.vectorstores import FAISS
 from notion_client import Client
+from langchain_core.documents import Document
 
 # Streamlit page config
 st.set_page_config(layout="wide", page_title="MIVA Success Advisor's Assistant")
@@ -26,21 +29,30 @@ if 'chat_history' not in st.session_state:
 
 # Google Drive Authentication and Data Loading
 def authenticate_google_drive():
-    try:
-        service_account_info = json.loads(st.secrets["GOOGLE_SERVICE_ACCOUNT"])
-        creds = Credentials.from_service_account_info(
-            service_account_info, 
-            scopes=['https://www.googleapis.com/auth/drive.readonly']
-        )
-        return creds
-    except Exception as e:
-        st.error(f"Error in Google Drive authentication: {str(e)}")
-        return None
+    creds = None
+    if 'token' in st.session_state:
+        creds = Credentials.from_authorized_user_info(json.loads(st.session_state['token']))
+    
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = Flow.from_client_config(
+                json.loads(st.secrets["GOOGLE_CREDENTIALS"]),
+                scopes=['https://www.googleapis.com/auth/drive.readonly']
+            )
+            creds = flow.run_local_server(port=0)
+        
+        # Save the credentials for the next run
+        st.session_state['token'] = creds.to_json()
+    
+    return creds
 
 @st.cache_resource
 def load_google_drive_data():
     creds = authenticate_google_drive()
     if not creds:
+        st.error("Failed to authenticate with Google Drive.")
         return []
 
     folder_id = st.secrets.get("GOOGLE_DRIVE_FOLDER_ID")
@@ -94,7 +106,12 @@ def download_file_content(drive_service, file_id, mime_type):
 @st.cache_resource
 def load_notion_data():
     try:
-        client = Client(auth=st.secrets["NOTION_TOKEN"])
+        notion_token = st.secrets.get("NOTION_TOKEN")
+        if not notion_token:
+            st.error("Notion token is not set. Please check your Streamlit secrets.")
+            return []
+        
+        client = Client(auth=notion_token)
         loader = NotionDirectoryLoader("Notion_DB")
         return loader.load()
     except Exception as e:
@@ -146,6 +163,10 @@ def main():
                     for doc in google_docs
                 ]
                 
+                if not all_docs:
+                    st.warning("No documents were loaded. Please check your data sources and permissions.")
+                    return
+
                 st.session_state['db'] = create_vector_store(all_docs)
                 st.success("Data loaded successfully!")
             except Exception as e:
