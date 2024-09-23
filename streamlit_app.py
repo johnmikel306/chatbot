@@ -41,8 +41,8 @@ def authenticate_google_drive():
                 json.loads(st.secrets["GOOGLE_CREDENTIALS"]),
                 scopes=['https://www.googleapis.com/auth/drive.readonly']
             )
-            # Instead of run_local_server, use run_console
-            creds = flow.run_console()
+            # Use run_console instead of run_local_server
+            creds = flow.run_console()  # This prompts user to authenticate in the console
         
         # Save the credentials for the next run
         st.session_state['token'] = creds.to_json()
