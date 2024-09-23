@@ -12,3 +12,6 @@ langchain_text_splitters
 opencv-python-headless
 faiss-cpu
 langchain_googledrive
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
