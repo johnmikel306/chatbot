@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 from langchain import hub
 from langchain_google_genai import chatgooglegenerativeai
@@ -13,28 +12,20 @@ from langchain_core.output_parsers import stroutputparser
 from langchain_core.runnables import runnablepassthrough
 from langchain_community.vectorstores import faiss
 from notion_client import Client
-from dotenv import load_dotenv
 from pprint import pprint
 
-# Remove the load_dotenv call since we'll be using Streamlit secrets
+# Initialize notion client with the secret token
+client = Client(auth=st.secrets["notion_token"])
 
-# Configure environment variables using Streamlit secrets
-google_account_file = st.secrets["google_account_file"]
-os.environ['google_account_file'] = google_account_file
-
-# initialize notion client with token from Streamlit secrets
-notion_token = st.secrets["notion_token"]
-client = Client(auth=notion_token)
-
-# loading the notion database
+# Loading the notion database
 loader1 = notiondirectoryloader("notion_db")
 doc1 = loader1.load()
 
-# loading the google drive
+# Loading the Google Drive
 loader2 = googledriveloader(
     folder_id=st.secrets["google_drive_folder_id"],
-    credentials_path="myllm-app/credentials.json",
-    token_path="myllm-app/token.json",
+    credentials_path=st.secrets["google_credentials"],  # You might store it directly or point to a file based on your logic
+    token_path='/workspaces/myllm-app/token.json',  # Adjust as necessary
     file_types=["document", "sheet"],
     file_loader_cls=unstructuredfileioloader,
     file_loader_kwargs={"mode": "elements"},
@@ -42,10 +33,10 @@ loader2 = googledriveloader(
 )
 doc2 = loader2.load()
 
-# combine documents from notion and google drive
+# Combine documents from notion and google drive
 all_docs = doc1 + doc2
 
-# split the texts into chunks
+# Split the texts into chunks
 text_splitter = recursivecharactertextsplitter(
     chunk_size=1000,
     chunk_overlap=200,
@@ -54,7 +45,7 @@ text_splitter = recursivecharactertextsplitter(
 )
 splits = text_splitter.split_documents(all_docs)
 
-# create the vector store
+# Create the vector store
 embeddings = googlegenerativeaiembeddings(model="models/embedding-001")
 db = faiss.from_documents(splits, embeddings)
 
@@ -63,6 +54,7 @@ llm = chatgooglegenerativeai(model="gemini-1.5-flash")
 retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 6})
 
 prompt = hub.pull("rlm/rag-prompt")
+
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
@@ -73,9 +65,9 @@ rag_chain = (
     | stroutputparser()
 )
 
-# streamlit app
-st.title("MIVA Success Advisor's Assistant")
-# st.logo("logo.jpg")  # Uncomment if you have a logo
+# Streamlit app
+st.title("Miva Success Advisor's Assistant")
+# st.logo("logo.jpg")  # Uncomment if you have a logo to display
 
 # Load chat history from session state
 chat_history = st.session_state.get('chat_history', [])
