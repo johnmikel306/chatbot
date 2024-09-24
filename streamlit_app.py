@@ -4,6 +4,7 @@ from notion_client import Client
 from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.document_loaders import NotionDirectoryLoader, UnstructuredFileIOLoader
 from langchain_google_community import GoogleDriveLoader
+from langchain_googledrive.document_loaders import GoogleDriveLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.runnables import RunnablePassthrough
