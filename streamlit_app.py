@@ -1,34 +1,33 @@
 import os
 import streamlit as st
+from notion_client import Client
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_community.document_loaders import NotionDirectoryLoader, UnstructuredFileIOLoader
 from langchain_google_community import GoogleDriveLoader
-from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from notion_client import Client
-from dotenv import load_dotenv
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
+from langchain import hub
 
-# Load environment variables from .env file
-load_dotenv()
+# Retrieve environment variables
+GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_ACCOUNT_FILE", "path/to/your/credentials.json")
+GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+NOTION_TOKEN = os.getenv("NOTION_TOKEN")
 
-# Set up Streamlit page configuration
-st.set_page_config(page_title="MIVA Success Advisor's Assistant", layout="wide")
+# Initialize Notion client
+notion_client = Client(auth=NOTION_TOKEN)
 
-# Sidebar configuration
-st.sidebar.title("Configuration")
-api_key = st.sidebar.text_input("Enter your Google API Key:", type="password")
-
+@st.cache_data(show_spinner=False)
 def load_notion_data():
-    """Load data from Notion database."""
-    client = Client(auth=os.getenv("NOTION_TOKEN"))
     loader = NotionDirectoryLoader("Notion_DB")
     return loader.load()
 
+@st.cache_data(show_spinner=False)
 def load_google_drive_data():
-    """Load data from Google Drive."""
     loader = GoogleDriveLoader(
-        folder_id=os.getenv("GOOGLE_DRIVE_FOLDER_ID"),
-        credentials_path=os.getenv("GOOGLE_ACCOUNT_FILE"),
+        folder_id=GOOGLE_DRIVE_FOLDER_ID,
+        credentials_path=GOOGLE_CREDENTIALS_PATH,
         token_path="/workspaces/MyLLM-App/token.json",
         file_types=["document", "sheet"],
         file_loader_cls=UnstructuredFileIOLoader,
@@ -36,9 +35,8 @@ def load_google_drive_data():
         recursive=False,
     )
     return loader.load()
-
-def get_text_chunks(docs):
-    """Split documents into chunks."""
+    
+def process_documents(docs):
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=200,
@@ -47,57 +45,67 @@ def get_text_chunks(docs):
     )
     return text_splitter.split_documents(docs)
 
-def build_vector_store(text_chunks, api_key):
-    """Build and save the vector store."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-    vector_store = FAISS.from_documents(text_chunks, embedding=embeddings)
-    vector_store.save_local("faiss_index")
-    return vector_store
+@st.cache_data(show_spinner=False)
+def create_vector_store(splits):
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    return FAISS.from_documents(splits, embeddings)
 
-def get_conversational_chain(api_key):
-    """Create a conversational chain for question answering."""
-    prompt_template = """
-    Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
-    provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
-    Context:\n {context}?\n
-    Question: \n{question}\n
+def create_rag_chain(vector_store):
+    retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={"k": 6})
+    prompt = hub.pull("rlm/rag-prompt")
 
-    Answer:
-    """
-    model = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=api_key)
-    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
-    chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
-    return chain
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
 
-def user_input(user_question, api_key):
-    """Process user question and return a response."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
-    new_db = FAISS.load_local("faiss_index", embeddings)
-    docs = new_db.similarity_search(user_question)
-    chain = get_conversational_chain(api_key)
-    response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-    return response["output_text"]
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+
+    return (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
 
 def main():
-    """Main function for the Streamlit app."""
-    st.header("MIVA Success Advisor's Assistant")
+    st.title("MIVA Success Advisor's Assistant")
 
-    # Load documents and build vector store on submission
-    if st.sidebar.button("Load & Process Data") and api_key:
-        with st.spinner("Loading documents and processing..."):
-            notion_data = load_notion_data()
-            drive_data = load_google_drive_data()
-            all_docs = notion_data + drive_data
-            text_chunks = get_text_chunks(all_docs)
-            build_vector_store(text_chunks, api_key)
-            st.success("Documents processed successfully.")
+    # Load data
+    with st.spinner("Loading Notion data..."):
+        notion_docs = load_notion_data()
+    with st.spinner("Loading Google Drive data..."):
+        drive_docs = load_google_drive_data()
 
-    # User input and question handling
-    user_question = st.text_input("Ask a Question from the Documents")
-    if user_question and api_key:
-        with st.spinner("Generating response..."):
-            response = user_input(user_question, api_key)
-            st.write("Reply:", response)
+    # Combine and process data
+    all_docs = notion_docs + drive_docs
+    with st.spinner("Processing documents..."):
+        splits = process_documents(all_docs)
+        vector_store = create_vector_store(splits)
+
+    rag_chain = create_rag_chain(vector_store)
+
+    # Chat Interface
+    chat_history = st.session_state.get('chat_history', [])
+    for message in chat_history:
+        if message['sender'] == 'user':
+            st.chat_message("user").write(message['content'])
+        else:
+            st.chat_message("ai").write(message['content'])
+
+    user_question = st.chat_input(placeholder="Ask me anything!")
+    if user_question:
+        st.chat_message("user").write(user_question)
+        response = ""
+        for chunk in rag_chain.stream(user_question):
+            response += chunk
+        st.chat_message("ai").write(response)
+
+        # Add the new chat to the history
+        chat_history.append({'sender': 'user', 'content': user_question})
+        chat_history.append({'sender': 'ai', 'content': response})
+
+        # Save the chat history to session state
+        st.session_state['chat_history'] = chat_history
 
 if __name__ == "__main__":
     main()
+
