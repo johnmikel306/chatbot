@@ -17,7 +17,6 @@ google-auth-httplib2
 google-api-python-client
 
 
-PyPDF2
-chromadb
+
 
 
