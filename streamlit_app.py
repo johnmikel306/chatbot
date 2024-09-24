@@ -29,11 +29,11 @@ def load_notion_data():
 def load_google_drive_data():
     loader = GoogleDriveLoader(
         folder_id=GOOGLE_DRIVE_FOLDER_ID,
-        credentials_path=GOOGLE_ACCOUNT_FILE,
-        token_path="/tmp/token.json",
+        # credentials_path=GOOGLE_ACCOUNT_FILE,
+        # token_path="/tmp/token.json",
         file_types=["document", "sheet"],
         file_loader_cls=UnstructuredFileIOLoader,
-        file_loader_kwargs={"mode": "elements"},
+        # file_loader_kwargs={"mode": "elements"},
         recursive=False,
     )
     return loader.load()
