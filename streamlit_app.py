@@ -1,21 +1,22 @@
 import streamlit as st
 import os
 import json
-import io
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
+import io
 from langchain import hub
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.document_loaders import NotionDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.vectorstores import FAISS
 from notion_client import Client
 from langchain_core.documents import Document
-from langchain_community.document_loaders import NotionDirectoryLoader
 
 # Streamlit page config
 st.set_page_config(layout="wide", page_title="MIVA Success Advisor's Assistant")
@@ -40,9 +41,9 @@ def authenticate_google_drive():
                 json.loads(st.secrets["GOOGLE_CREDENTIALS"]),
                 scopes=['https://www.googleapis.com/auth/drive.readonly']
             )
-            # Use run_console for environments like Streamlit Cloud
-            creds = flow.run_console()
-
+            # Use run_console instead of run_local_server
+            creds = flow.run_console()  # This prompts user to authenticate in the console
+        
         # Save the credentials for the next run
         st.session_state['token'] = creds.to_json()
     
@@ -55,7 +56,7 @@ def load_google_drive_data():
         st.error("Failed to authenticate with Google Drive.")
         return []
 
-    folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+    folder_id = st.secrets.get("GOOGLE_DRIVE_FOLDER_ID")
     if not folder_id:
         st.error("Google Drive folder ID is not set. Please check your Streamlit secrets.")
         return []
@@ -106,13 +107,13 @@ def download_file_content(drive_service, file_id, mime_type):
 @st.cache_resource
 def load_notion_data():
     try:
-        notion_token = st.secrets["NOTION_TOKEN"]
+        notion_token = st.secrets.get("NOTION_TOKEN")
         if not notion_token:
             st.error("Notion token is not set. Please check your Streamlit secrets.")
             return []
         
         client = Client(auth=notion_token)
-        loader = NotionDirectoryLoader("Notion_DB")  # Assumes a folder path named "Notion_DB"
+        loader = NotionDirectoryLoader("Notion_DB")
         return loader.load()
     except Exception as e:
         st.error(f"Error loading Notion data: {str(e)}")
