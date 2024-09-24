@@ -11,9 +11,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain import hub
 
 # Retrieve environment variables
-GOOGLE_CREDENTIALS_PATH = os.getenv("GOOGLE_ACCOUNT_FILE", "path/to/your/credentials.json")
-GOOGLE_DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-NOTION_TOKEN = os.getenv("NOTION_TOKEN")
+SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+GOOGLE_ACCOUNT_FILE = st.secrets["GOOGLE_ACCOUNT_FILE"]
+GOOGLE_DRIVE_FOLDER_ID = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+NOTION_TOKEN = st.secrets["NOTION_TOKEN"]
 
 # Initialize Notion client
 notion_client = Client(auth=NOTION_TOKEN)
@@ -28,7 +29,7 @@ def load_google_drive_data():
     loader = GoogleDriveLoader(
         folder_id=GOOGLE_DRIVE_FOLDER_ID,
         credentials_path=GOOGLE_CREDENTIALS_PATH,
-        token_path="/workspaces/MyLLM-App/token.json",
+        token_path="/tmp/token.json",
         file_types=["document", "sheet"],
         file_loader_cls=UnstructuredFileIOLoader,
         file_loader_kwargs={"mode": "elements"},
