@@ -17,11 +17,7 @@ google-auth-httplib2
 google-api-python-client
 
 
-streamlit
-google-generativeai
-langchain
 PyPDF2
 chromadb
-faiss-cpu
-langchain_google_genai
-os
+
+
