@@ -94,18 +94,18 @@ def main():
     st.title("MIVA Success Advisor's Assistant")
     
     # Initialize Notion client
-    notion_client = initialize_notion_client()
+    # notion_client = initialize_notion_client()
     
-    # Load documents
-    with st.spinner("Loading documents from Notion..."):
-        notion_docs = load_notion_documents(notion_client)
+    # # Load documents
+    # with st.spinner("Loading documents from Notion..."):
+    #     notion_docs = load_notion_documents(notion_client)
     
     with st.spinner("Loading documents from Google Drive..."):
         drive_docs = load_google_drive_documents()
     
     # Combine and split documents
-    all_docs = notion_docs + drive_docs
-    splits = split_documents(all_docs)
+    # all_docs = notion_docs + drive_docs
+    splits = split_documents(drive_docs)
 
     # Create vector store
     db = create_vector_store(splits)
