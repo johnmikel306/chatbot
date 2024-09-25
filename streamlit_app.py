@@ -25,16 +25,16 @@ GOOGLE_ACCOUNT_FILE = st.secrets['GOOGLE_ACCOUNT_FILE']
 GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']
 
 # Function to initialize Notion client
-def initialize_notion_client():
-    """Initialize and return the Notion client using the token from environment variables."""
-    return Client(st.secrets["NOTION_TOKEN"])
+# def initialize_notion_client():
+#     """Initialize and return the Notion client using the token from environment variables."""
+#     return Client(st.secrets["NOTION_TOKEN"])
 
 # Function to load Notion documents with caching
-@st.cache_data(show_spinner=True, max_entries=10)
-def load_notion_documents(_notion_client):
-    """Load documents from the Notion database and cache the result."""
-    loader = NotionDirectoryLoader("Notion_DB")
-    return loader.load()
+# @st.cache_data(show_spinner=True, max_entries=10)
+# def load_notion_documents(_notion_client):
+#     """Load documents from the Notion database and cache the result."""
+#     loader = NotionDirectoryLoader("Notion_DB")
+#     return loader.load()
 
 # Function to load Google Drive documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
