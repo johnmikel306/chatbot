@@ -21,13 +21,13 @@ load_dotenv()
 
 # Set environment variables for Google API credentials
 SCOPES = ['https://www.googleapis.com/auth/drive']
-os.environ['GOOGLE_ACCOUNT_FILE'] = "credentials.json"
-os.environ['GOOGLE_API_KEY'] = "AIzaSyBO7d_cbzrxVDIxKj9MvG8OhedqC7Qt-L8"
+GOOGLE_ACCOUNT_FILE = st.secrets['GOOGLE_ACCOUNT_FILE']
+GOOGLE_API_KEY = st.secrets['GOOGLE_API_KEY']
 
 # Function to initialize Notion client
 def initialize_notion_client():
     """Initialize and return the Notion client using the token from environment variables."""
-    return Client(auth=os.getenv("NOTION_TOKEN"))
+    return Client(st.secrets["NOTION_TOKEN"])
 
 # Function to load Notion documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
@@ -41,8 +41,8 @@ def load_notion_documents(_notion_client):
 def load_google_drive_documents():
     """Load documents from Google Drive and cache the result."""
     loader = GoogleDriveLoader(
-        folder_id="0ANiSnGo3Uz8VUk9PVA",  # Replace with your folder ID
-        credentials_path="credentials.json",
+        folder_id=st.secrets['GOOGLE_DRIVE_FOLDER_ID'],  # Google drive folder ID
+        credentials_path="GOOGLE_ACCOUNT_FILE",
         token_path="token.json",
         file_types=["document", "sheet"],
         file_loader_cls=UnstructuredFileIOLoader,
