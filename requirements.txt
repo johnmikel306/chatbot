@@ -7,7 +7,7 @@ langchain-google-genai
 langchain-community
 langchain-core
 langchainhub
-langchain_google_community
+langchain-google-community[drive]
 langchain_text_splitters
 opencv-python-headless
 faiss-cpu
