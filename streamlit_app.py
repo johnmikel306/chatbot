@@ -23,8 +23,6 @@ def get_credentials():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
-            # Update the secrets with the refreshed token
-            st.secrets['token'] = creds.to_json()
         else:
             st.error("Credentials are invalid or missing. Please update the app secrets.")
             st.stop()
