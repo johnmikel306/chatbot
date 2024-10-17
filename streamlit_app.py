@@ -3,8 +3,8 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_community.document_loaders import UnstructuredFileIOLoader
-from langchain_google_community import GoogleDriveLoader
+from langchain_community.document_loaders import UnstructuredFileIOLoader, GoogleDriveLoader
+# from langchain_google_community import GoogleDriveLoader
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser
