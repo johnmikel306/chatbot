@@ -12,26 +12,46 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.vectorstores import FAISS
 
-# Parse the JSON strings from secrets
-google_account_info = json.loads(st.secrets['GOOGLE_ACCOUNT_FILE'])
-google_token_info = json.loads(st.secrets['GOOGLE_TOKEN_FILE'])
+# Access secrets from Streamlit Secrets Manager
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+GOOGLE_DRIVE_FOLDER_ID = st.secrets['GOOGLE_DRIVE_FOLDER_ID']
+TOKEN_PATH = st.secrets['TOKEN_PATH']
 
-# Use the parsed JSON as needed
+# Parse the nested secrets
+google_account_info = {
+    "installed": {
+        "client_id": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["client_id"],
+        "project_id": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["project_id"],
+        "auth_uri": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["auth_uri"],
+        "token_uri": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["auth_provider_x509_cert_url"],
+        "client_secret": st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["client_secret"],
+        "redirect_uris": json.loads(st.secrets["GOOGLE_ACCOUNT_FILE"]["installed"]["redirect_uris"])
+    }
+}
+
+google_token_info = {
+    "token": st.secrets["GOOGLE_TOKEN_FILE"]["token"],
+    "refresh_token": st.secrets["GOOGLE_TOKEN_FILE"]["refresh_token"],
+    "token_uri": st.secrets["GOOGLE_TOKEN_FILE"]["token_uri"],
+    "client_id": st.secrets["GOOGLE_TOKEN_FILE"]["client_id"],
+    "client_secret": st.secrets["GOOGLE_TOKEN_FILE"]["client_secret"],
+    "scopes": json.loads(st.secrets["GOOGLE_TOKEN_FILE"]["scopes"]),
+    "universe_domain": st.secrets["GOOGLE_TOKEN_FILE"]["universe_domain"],
+    "account": st.secrets["GOOGLE_TOKEN_FILE"]["account"],
+    "expiry": st.secrets["GOOGLE_TOKEN_FILE"]["expiry"]
+}
+
 # Write them to temporary files if required by libraries
 credentials_path = "/tmp/credentials.json"
-token_path = "/tmp/token.json"
-
+token_path = TOKEN_PATH
 with open(credentials_path, 'w') as f:
     json.dump(google_account_info, f)
-
 with open(token_path, 'w') as f:
     json.dump(google_token_info, f)
 
 # Set environment variables for Google API credentials
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-GOOGLE_DRIVE_FOLDER_ID = st.secrets['GOOGLE_DRIVE_FOLDER_ID']
-TOKEN_PATH = token_path  # Ensure this path matches where the token is stored
-SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
 # Function to load Google Drive documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
@@ -64,8 +84,7 @@ def split_documents(all_docs):
 def process_documents(docs):
     """Process documents and store vectors using FAISS."""
     embeddings = GoogleGenerativeAIEmbeddings(api_key=GOOGLE_API_KEY)
-    vectorstore = FAISS(embeddings=embeddings)
-    vectorstore.add_documents(docs)
+    vectorstore = FAISS.from_documents(docs, embeddings)
     return vectorstore
 
 def main():
