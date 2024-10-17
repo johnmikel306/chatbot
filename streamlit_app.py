@@ -80,28 +80,84 @@ def split_documents(all_docs):
     splits = text_splitter.split_documents(all_docs)
     return splits
 
-# Additional code for document processing and vector storage
-def process_documents(docs):
+# Function for document processing and vector storage
+def create_vector_store(docs):
     """Process documents and store vectors using FAISS."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", api_key=GOOGLE_API_KEY)
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001",
+        google_api_key=GOOGLE_API_KEY
+    )
     vectorstore = FAISS.from_documents(docs, embeddings)
     return vectorstore
 
+# Function to create the RAG chain
+def create_rag_chain(db):
+    """Create and return a RAG chain using the given vector store."""
+    # Load the language model
+    llm = ChatGoogleGenerativeAI(model="gemini-pro", google_api_key=GOOGLE_API_KEY)
+    
+    # Load a summarization prompt
+    prompt = hub.pull("rlm/rag-prompt")
+    
+    # Create a retriever
+    retriever = db.as_retriever()
+    
+    # Create the RAG chain
+    rag_chain = (
+        {"context": retriever, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    
+    return rag_chain
+
+# Function to handle the chat interface
+def render_chat_interface(rag_chain):
+    """Render the chat interface with user input and responses."""
+    chat_history = st.session_state.get('chat_history', [])
+    
+    # Display chat history
+    for message in chat_history:
+        if message['sender'] == 'user':
+            st.chat_message("user").write(message['content'])
+        else:
+            st.chat_message("ai").write(message['content'])
+
+    # Handle user input
+    user_question = st.chat_input(placeholder="Ask me anything!")
+    if user_question:
+        st.chat_message("user").write(user_question)
+        response = ""
+        for chunk in rag_chain.stream(user_question):
+            response += chunk
+        st.chat_message("ai").write(response)
+
+        # Add the new chat to the history
+        chat_history.append({'sender': 'user', 'content': user_question})
+        chat_history.append({'sender': 'ai', 'content': response})
+
+        # Save the chat history to session state
+        st.session_state['chat_history'] = chat_history
+
 def main():
-    """Main function to run the Streamlit app."""
+    """Main function to orchestrate the Streamlit app."""
     st.title("MIVA Success Advisor's Assistant")
     
-    # Load documents
-    all_docs = load_google_drive_documents()
+    with st.spinner("Loading documents from Google Drive..."):
+        drive_docs = load_google_drive_documents()
     
-    # Split documents
-    split_docs = split_documents(all_docs)
+    # Combine and split documents
+    splits = split_documents(drive_docs)
+
+    # Create vector store
+    db = create_vector_store(splits)
     
-    # Process documents
-    vectorstore = process_documents(split_docs)
+    # Create RAG chain
+    rag_chain = create_rag_chain(db)
     
-    # Display a message
-    st.write("Documents processed and stored in vector database.")
+    # Render the chat interface
+    render_chat_interface(rag_chain)
 
 if __name__ == "__main__":
     main()
