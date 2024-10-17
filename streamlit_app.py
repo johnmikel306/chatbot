@@ -96,13 +96,6 @@ def main():
     """Main function to orchestrate the Streamlit app."""
     st.title("MIVA Success Advisor's Assistant")
 
-    # Initialize Notion client
-    # notion_client = initialize_notion_client()
-
-    # # Load documents
-    # with st.spinner("Loading documents from Notion..."):
-    #     notion_docs = load_notion_documents(notion_client)
-
     with st.spinner("Loading documents from Google Drive..."):
         drive_docs = load_google_drive_documents()
 
