@@ -102,10 +102,9 @@ def create_rag_chain(db):
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True)
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful AI assistant. Use the following pieces of context to answer the human's question. If you don't know the answer, just say that you don't know.\n\nContext: {context}"),
-        ("chat_history", "{chat_history}"),
-        ("human", "{question}"),
-        ("ai", "To answer your question, I'll consider the context provided and our conversation history. Here's my response:")
+        ("system", "You are a helpful AI assistant for MIVA Success Advisors. Use the following pieces of context to answer the human's question. If you don't know the answer, just say that you don't know. Always maintain context from the chat history provided.\n\nContext: {context}"),
+        ("human", "Chat History:\n{chat_history}\n\nHuman: {question}"),
+        ("ai", "Assistant: ")
     ])  
 
     def format_docs(docs):
