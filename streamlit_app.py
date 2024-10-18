@@ -106,25 +106,25 @@ def create_rag_chain(db):
         ("human", "{question}"),
         ("ai", "To answer your question, I'll consider the context provided and our conversation history. Here's my response:")
     ])    
-    
-    # prompt = hub.pull("rlm/rag-prompt")
-    # prompt = ChatPromptTemplate.from_messages([
-    # ("human", """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know as it is not included in the Google Drive you're provided.
-    # For phone numbers, always make sure to add "+234" infront of the number if there is no "0" as the first number, else replace the starting "0" with "+234".
-    # For amounts in Naira, add the Naira sign infront of the figure. Do the same for amounts in dollars. 
-    # When asked questions whose answers have urls included, make sure to provide the url embedded in the response as well.
-    # For emails responses, draft it as a success/programs advisor with 10 years of experience in academic advising.
-    # Make it very conversational and human-like but make sure to only provide relevant information. Make sure to provide empathy where necessary.
-    # Question: {question} 
-    # Context: {context} 
-    # Answer:"""),
-    # ])
+
 
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
+    def format_chat_history(chat_history):
+        formatted_history = []
+        for message in chat_history:
+            if message.type == 'human':
+                formatted_history.append(f"Human: {message.content}")
+            elif message.type == 'ai':
+                formatted_history.append(f"Assistant: {message.content}")
+        return "\n".join(formatted_history)
+
     rag_chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        RunnablePassthrough.assign(
+            context=lambda x: format_docs(retriever.get_relevant_documents(x["question"])),
+            chat_history=lambda x: format_chat_history(x["chat_history"])
+        )
         | prompt
         | llm
         | StrOutputParser()
@@ -153,38 +153,30 @@ def main():
 # Function to handle the chat interface
 def render_chat_interface(rag_chain):
     """Render the chat interface with user input and responses."""
-    chat_history = st.session_state.get('chat_history', [])
-    
-    # Display chat history
-    for message in chat_history:
-        if message['sender'] == 'user':
-            st.chat_message("user").write(message['content'])
-        else:
-            st.chat_message("ai").write(message['content'])
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
 
-    # Handle user input
-    user_question = st.chat_input(placeholder="Ask me anything!")
-    if user_question:
-        st.chat_message("user").write(user_question)
+    for message in st.session_state.messages:
+        st.chat_message(message["role"]).markdown(message["content"])
+
+    if user_question := st.chat_input("Ask me anything!"):
+        st.session_state.messages.append({"role": "human", "content": user_question})
+        st.chat_message("human").markdown(user_question)
 
         with st.chat_message("ai"):
             response_placeholder = st.empty()
             full_response = ""
             for chunk in rag_chain.stream({
                 "question": user_question,
-                "chat_history": memory.chat_memory.messages
+                "chat_history": st.session_state.memory.chat_memory.messages
             }):
                 full_response += chunk
                 response_placeholder.markdown(full_response + "▌")
             response_placeholder.markdown(full_response)
-
-        # Add the new chat to the history
-        chat_history.append({'sender': 'user', 'content': user_question})
-        chat_history.append({'sender': 'ai', 'content': full_response})
-
-        # Save the chat history to session state
-        st.session_state['chat_history'] = chat_history
-
+        
+        st.session_state.messages.append({"role": "ai", "content": full_response})
+        st.session_state.memory.chat_memory.add_user_message(user_question)
+        st.session_state.memory.chat_memory.add_ai_message(full_response)
 # Run the main function when the script is executed
 if __name__ == "__main__":
     main()
