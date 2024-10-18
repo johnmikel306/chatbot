@@ -82,8 +82,8 @@ def load_google_drive_documents():
 def split_documents(all_docs):
     """Split combined documents into chunks using a text splitter."""
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=700,
+        chunk_overlap=150,
         length_function=len,
         is_separator_regex=False,
     )
