@@ -54,6 +54,13 @@ with open(token_path, 'w') as f:
 # Set environment variables for Google API credentials
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credentials_path
 
+# Initialize persistent memory
+if 'memory' not in st.session_state:
+    st.session_state.memory = ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True
+    )
+
 # Function to load Google Drive documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
 def load_google_drive_documents():
@@ -94,19 +101,11 @@ def create_rag_chain(db):
     retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 6})
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True)
 
-    #adding memory to the chats
-    memory = ConversationBufferMemory(
-        memory_key="chat_history",
-        return_message=True
-    )
-
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful AI assistant. Use the following pieces of context to answer the human's question. If you don't know the answer, just say that you don't know.\n\nContext: {context}"),
-        ("chat_history", "{chat_history}"),
-        ("human", "{question}"),
-        ("ai", "To answer your question, I'll consider the context provided and our conversation history. Here's my response:")
+        ("system", "You are a helpful AI assistant for MIVA Success Advisors. Use the following pieces of context to answer the human's question. If you don't know the answer, just say that you don't know. Always maintain context from the chat history provided.\n\nContext: {context}"),
+        ("human", "Chat History:\n{chat_history}\n\nHuman: {question}"),
+        ("ai", "Assistant: ")
     ])    
-
 
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
@@ -145,10 +144,10 @@ def main():
     db = create_vector_store(splits)
     
     # Create RAG chain
-    rag_chain, memory = create_rag_chain(db)
+    rag_chain = create_rag_chain(db)
     
     # Render the chat interface
-    render_chat_interface(rag_chain, memory)
+    render_chat_interface(rag_chain)
 
 # Function to handle the chat interface
 def render_chat_interface(rag_chain):
@@ -177,6 +176,7 @@ def render_chat_interface(rag_chain):
         st.session_state.messages.append({"role": "ai", "content": full_response})
         st.session_state.memory.chat_memory.add_user_message(user_question)
         st.session_state.memory.chat_memory.add_ai_message(full_response)
+
 # Run the main function when the script is executed
 if __name__ == "__main__":
     main()
