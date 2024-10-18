@@ -84,7 +84,7 @@ def split_documents(all_docs):
 @st.cache_resource(show_spinner=True)
 def create_vector_store(_splits):
     """Create and return the FAISS vector store using text chunks."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(api_key=GOOGLE_API_KEY, model="models/embedding-001")
     return FAISS.from_documents(_splits, embeddings)
 
 # Function to initialize and return the RAG chain
