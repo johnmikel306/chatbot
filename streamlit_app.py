@@ -72,8 +72,8 @@ def load_google_drive_documents():
 def split_documents(all_docs):
     """Split combined documents into chunks using a text splitter."""
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=700,
+        chunk_overlap=150,
         length_function=len,
         is_separator_regex=False,
     )
@@ -90,20 +90,20 @@ def create_vector_store(_splits):
 # Function to initialize and return the RAG chain
 def create_rag_chain(db):
     """Create and return the Retrieval-Augmented Generation (RAG) chain."""
+    retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 6})
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
-    retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 4})
-    # prompt = hub.pull("rlm/rag-prompt")
-    prompt = ChatPromptTemplate.from_messages([
-    ("human", """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know as it is not included in the Google Drive you're provided.
-    For phone numbers, always make sure to add "+234" infront of the number if there is no "0" as the first number, else replace the starting "0" with "+234".
-    For amounts in Naira, add the Naira sign infront of the figure. Do the same for amounts in dollars. 
-    When asked questions whose answers have urls included, make sure to provide the url embedded in the response as well.
-    For emails responses, draft it as a success/programs advisor with 10 years of experience in academic advising.
-    Make it very conversational and human-like but make sure to only provide relevant information. Make sure to provide empathy where necessary.
-    Question: {question} 
-    Context: {context} 
-    Answer:"""),
-    ])
+    prompt = hub.pull("rlm/rag-prompt")
+    # prompt = ChatPromptTemplate.from_messages([
+    # ("human", """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know as it is not included in the Google Drive you're provided.
+    # For phone numbers, always make sure to add "+234" infront of the number if there is no "0" as the first number, else replace the starting "0" with "+234".
+    # For amounts in Naira, add the Naira sign infront of the figure. Do the same for amounts in dollars. 
+    # When asked questions whose answers have urls included, make sure to provide the url embedded in the response as well.
+    # For emails responses, draft it as a success/programs advisor with 10 years of experience in academic advising.
+    # Make it very conversational and human-like but make sure to only provide relevant information. Make sure to provide empathy where necessary.
+    # Question: {question} 
+    # Context: {context} 
+    # Answer:"""),
+    # ])
 
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
