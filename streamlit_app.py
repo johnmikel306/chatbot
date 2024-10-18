@@ -159,7 +159,7 @@ def render_chat_interface(rag_chain):
             full_response = ""
             for chunk in rag_chain.stream(user_question):
                 full_response += chunk
-                response_placeholder.markdown(full_response = "▌")
+                response_placeholder.markdown(full_response + "▌")
             response_placeholder.markdown(full_response)
 
         # Add the new chat to the history
