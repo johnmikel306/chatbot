@@ -191,18 +191,6 @@ def render_chat_interface(rag_chain):
         st.session_state.memory.chat_memory.add_user_message(user_question)
         st.session_state.memory.chat_memory.add_ai_message(formatted_response)
 
-# Function to reset the vector store
-def reset_vector_store():
-    """Delete the existing vector store collection for resource management."""
-    vectorstore.delete_collection()  # Clear the existing collection
-    st.success("Vector store collection deleted successfully.")
-
-# Streamlit UI
-st.title("Vector Store Management")
-
-if st.button("Reset Vector Store"):
-    reset_vector_store()  # Call the reset function when the button is pressed
-
 
 # Run the main function when the script is executed
 if __name__ == "__main__":
