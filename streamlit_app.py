@@ -75,7 +75,7 @@ def load_google_drive_documents():
         file_loader_kwargs={"mode": "elements"},
         recursive=False,
     )
-    return loader.load()
+    all_docs = loader.load()
 
 # Function to combine and split documents
 def split_documents(all_docs):
@@ -150,7 +150,7 @@ def main():
     with st.spinner("Loading documents from Google Drive..."):
         drive_docs = load_google_drive_documents()
     
-    splits = split_documents(drive_docs)
+    splits = split_documents(all_docs)
 
     # Create vector store
     db = create_vector_store(splits)
