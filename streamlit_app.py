@@ -76,6 +76,7 @@ def load_google_drive_documents():
         recursive=False,
     )
     all_docs = loader.load()
+    return all_docs
 
 # Function to combine and split documents
 def split_documents(all_docs):
@@ -100,7 +101,7 @@ def create_vector_store(_splits):
 def create_rag_chain(db):
     """Create and return the Retrieval-Augmented Generation (RAG) chain."""
     retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 6})
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True, temperature = 0.7)
 
     prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a helpful AI assistant for MIVA Success Advisors. Use the following pieces of context to answer the human's question. Include all relevant information, including sensitive data such as phone numbers and email addresses. Do not redact or omit any information. If you don't know the answer, just say that you don't know. Always maintain context from the chat history provided.\n\nContext: {context}"),
@@ -148,7 +149,7 @@ def main():
     st.title("MIVA Assistant")
     
     with st.spinner("Loading documents from Google Drive..."):
-        drive_docs = load_google_drive_documents()
+        all_docs = load_google_drive_documents()
     
     splits = split_documents(all_docs)
 
@@ -189,7 +190,20 @@ def render_chat_interface(rag_chain):
         st.session_state.messages.append({"role": "ai", "content": formatted_response})
         st.session_state.memory.chat_memory.add_user_message(user_question)
         st.session_state.memory.chat_memory.add_ai_message(formatted_response)
-        
+
+# Function to reset the vector store
+def reset_vector_store():
+    """Delete the existing vector store collection for resource management."""
+    vectorstore.delete_collection()  # Clear the existing collection
+    st.success("Vector store collection deleted successfully.")
+
+# Streamlit UI
+st.title("Vector Store Management")
+
+if st.button("Reset Vector Store"):
+    reset_vector_store()  # Call the reset function when the button is pressed
+
+
 # Run the main function when the script is executed
 if __name__ == "__main__":
     main()
