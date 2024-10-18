@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import streamlit as st
 from langchain import hub
@@ -80,8 +81,8 @@ def load_google_drive_documents():
 def split_documents(all_docs):
     """Split combined documents into chunks using a text splitter."""
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=700,
-        chunk_overlap=150,
+        chunk_size=1000,
+        chunk_overlap=200,
         length_function=len,
         is_separator_regex=False,
     )
@@ -102,13 +103,24 @@ def create_rag_chain(db):
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True)
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful AI assistant for MIVA Success Advisors. Use the following pieces of context to answer the human's question. If you don't know the answer, just say that you don't know. Always maintain context from the chat history provided.\n\nContext: {context}"),
-        ("human", "Chat History:\n{chat_history}\n\nHuman: {question}"),
-        ("ai", "Assistant: ")
-    ])  
+    ("system", "You are a helpful AI assistant for MIVA Success Advisors. Use the following pieces of context to answer the human's question. Include all relevant information, including sensitive data such as phone numbers and email addresses. Do not redact or omit any information. If you don't know the answer, just say that you don't know. Always maintain context from the chat history provided.\n\nContext: {context}"),
+    ("human", "Chat History:\n{chat_history}\n\nHuman: {question}"),
+    ("ai", "Assistant: ")
+]) 
 
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
+
+    def format_sensitive_info(text):
+    # Format phone numbers
+    phone_pattern = r'(\+?234|0)([789][01]\d{8})'
+    text = re.sub(phone_pattern, lambda m: f"+234{m.group(2)}" if m.group(1) == '0' else m.group(0), text)
+    
+    # Ensure emails are lowercase
+    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    text = re.sub(email_pattern, lambda m: m.group(0).lower(), text)
+    
+    return text
 
     def format_chat_history(chat_history):
         formatted_history = []
@@ -170,13 +182,14 @@ def render_chat_interface(rag_chain):
                 "chat_history": st.session_state.memory.chat_memory.messages
             }):
                 full_response += chunk
-                response_placeholder.markdown(full_response + "▌")
-            response_placeholder.markdown(full_response)
+                formatted_response = format_sensitive_info(full_response)
+                response_placeholder.markdown(formatted_response + "▌")
+            response_placeholder.markdown(formatted_response)
         
-        st.session_state.messages.append({"role": "ai", "content": full_response})
+        st.session_state.messages.append({"role": "ai", "content": formatted_response})
         st.session_state.memory.chat_memory.add_user_message(user_question)
-        st.session_state.memory.chat_memory.add_ai_message(full_response)
-
+        st.session_state.memory.chat_memory.add_ai_message(formatted_response)
+        
 # Run the main function when the script is executed
 if __name__ == "__main__":
     main()
