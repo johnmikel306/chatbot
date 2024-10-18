@@ -113,15 +113,15 @@ def create_rag_chain(db):
         return "\n\n".join(doc.page_content for doc in docs)
 
     def format_sensitive_info(text):
-    # Format phone numbers
-    phone_pattern = r'(\+?234|0)([789][01]\d{8})'
-    text = re.sub(phone_pattern, lambda m: f"+234{m.group(2)}" if m.group(1) == '0' else m.group(0), text)
+        # Format phone numbers
+        phone_pattern = r'(\+?234|0)([789][01]\d{8})'
+        text = re.sub(phone_pattern, lambda m: f"+234{m.group(2)}" if m.group(1) == '0' else m.group(0), text)
+        
+        # Ensure emails are lowercase
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        text = re.sub(email_pattern, lambda m: m.group(0).lower(), text)
     
-    # Ensure emails are lowercase
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    text = re.sub(email_pattern, lambda m: m.group(0).lower(), text)
-    
-    return text
+        return text
 
     def format_chat_history(chat_history):
         formatted_history = []
