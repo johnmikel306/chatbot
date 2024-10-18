@@ -112,17 +112,6 @@ def create_rag_chain(db):
     def format_docs(docs):
         return "\n\n".join(doc.page_content for doc in docs)
 
-    def format_sensitive_info(text):
-        # Format phone numbers
-        phone_pattern = r'(\+?234|0)([789][01]\d{8})'
-        text = re.sub(phone_pattern, lambda m: f"+234{m.group(2)}" if m.group(1) == '0' else m.group(0), text)
-        
-        # Ensure emails are lowercase
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        text = re.sub(email_pattern, lambda m: m.group(0).lower(), text)
-    
-        return text
-
     def format_chat_history(chat_history):
         formatted_history = []
         for message in chat_history:
@@ -183,11 +172,10 @@ def render_chat_interface(rag_chain):
                 "chat_history": st.session_state.memory.chat_memory.messages
             }):
                 full_response += chunk
-                formatted_response = format_sensitive_info(full_response)
                 response_placeholder.markdown(formatted_response + "▌")
             response_placeholder.markdown(formatted_response)
         
-        st.session_state.messages.append({"role": "ai", "content": formatted_response})
+        st.session_state.messages.append({"role": "ai", "content": full_response})
         st.session_state.memory.chat_memory.add_user_message(user_question)
         st.session_state.memory.chat_memory.add_ai_message(formatted_response)
 
