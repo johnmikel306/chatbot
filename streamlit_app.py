@@ -172,12 +172,12 @@ def render_chat_interface(rag_chain):
                 "chat_history": st.session_state.memory.chat_memory.messages
             }):
                 full_response += chunk
-                response_placeholder.markdown(formatted_response + "▌")
-            response_placeholder.markdown(formatted_response)
+                response_placeholder.markdown(full_response + "▌")
+            response_placeholder.markdown(full_response)
         
         st.session_state.messages.append({"role": "ai", "content": full_response})
         st.session_state.memory.chat_memory.add_user_message(user_question)
-        st.session_state.memory.chat_memory.add_ai_message(formatted_response)
+        st.session_state.memory.chat_memory.add_ai_message(full_response)
 
 
 # Run the main function when the script is executed
