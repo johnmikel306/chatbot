@@ -91,7 +91,7 @@ def create_vector_store(_splits):
 def create_rag_chain(db):
     """Create and return the Retrieval-Augmented Generation (RAG) chain."""
     retriever = db.as_retriever(search_type='similarity', search_kwargs={"k": 6})
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", streaming=True)
     prompt = hub.pull("rlm/rag-prompt")
     # prompt = ChatPromptTemplate.from_messages([
     # ("human", """You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know as it is not included in the Google Drive you're provided.
@@ -153,14 +153,18 @@ def render_chat_interface(rag_chain):
     user_question = st.chat_input(placeholder="Ask me anything!")
     if user_question:
         st.chat_message("user").write(user_question)
-        response = ""
-        for chunk in rag_chain.stream(user_question):
-            response += chunk
-        st.chat_message("ai").write(response)
+
+        with st.chat_message("ai"):
+            response_placeholder = st.empty()
+            full_response = ""
+            for chunk in rag_chain.stream(user_question):
+                full_response += chunk
+                response_placeholder.markdown(full_response = "▌")
+            response_placeholder.markdown(full_response)
 
         # Add the new chat to the history
         chat_history.append({'sender': 'user', 'content': user_question})
-        chat_history.append({'sender': 'ai', 'content': response})
+        chat_history.append({'sender': 'ai', 'content': full_response})
 
         # Save the chat history to session state
         st.session_state['chat_history'] = chat_history
