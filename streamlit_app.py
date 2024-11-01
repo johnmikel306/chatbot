@@ -16,7 +16,8 @@ from langchain.memory import ConversationBufferMemory
 
 # Access secrets from Streamlit Secrets Manager
 GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-GOOGLE_DRIVE_FOLDER_ID = st.secrets['GOOGLE_DRIVE_FOLDER_ID']
+GOOGLE_DRIVE_FOLDER_ID1 = st.secrets['GOOGLE_DRIVE_FOLDER_ID1']
+GOOGLE_DRIVE_FOLDER_ID2 = st.secrets['GOOGLE_DRIVE_FOLDER_ID2']
 TOKEN_PATH = st.secrets['TOKEN_PATH']
 
 # Parse the nested secrets
@@ -62,12 +63,14 @@ if 'memory' not in st.session_state:
         return_messages=True
     )
 
+folder_ids = ["GOOGLE_DRIVE_FOLDER_ID1", "GOOGLE_DRIVE_FOLDER_ID2"] 
+
 # Function to load Google Drive documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
 def load_google_drive_documents():
     """Load documents from Google Drive and cache the result."""
     loader = GoogleDriveLoader(
-        folder_id=GOOGLE_DRIVE_FOLDER_ID,
+        folder_id=folder_ids,
         credentials_path=credentials_path,
         token_path=token_path,
         file_types=["document", "sheet"],
