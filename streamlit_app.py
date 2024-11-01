@@ -61,17 +61,13 @@ if 'memory' not in st.session_state:
         return_messages=True
     )
 
-folder_ids = [
-    st.secrets['GOOGLE_DRIVE_FOLDER_ID1'],
-    st.secrets['GOOGLE_DRIVE_FOLDER_ID2']
-]
 
 # Function to load Google Drive documents with caching
 @st.cache_data(show_spinner=True, max_entries=10)
 def load_google_drive_documents():
     """Load documents from Google Drive and cache the result."""
     loader = GoogleDriveLoader(
-        folder_id=folder_ids,
+        folder_id= st.secrets['GOOGLE_DRIVE_FOLDER_ID'],
         credentials_path=credentials_path,
         token_path=token_path,
         file_types=["document", "sheet"],
