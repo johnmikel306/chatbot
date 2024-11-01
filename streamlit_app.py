@@ -135,7 +135,7 @@ def create_rag_chain(db):
 # Main function for the Streamlit app
 def main():
     """Main function to orchestrate the Streamlit app."""
-    st.title("MIVA Assistant")
+    st.title("Knowledge Base Retreiver")
     
     with st.spinner("Loading documents from Google Drive..."):
         all_docs = load_google_drive_documents()
