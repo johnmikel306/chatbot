@@ -70,7 +70,7 @@ folder_ids = ["GOOGLE_DRIVE_FOLDER_ID1", "GOOGLE_DRIVE_FOLDER_ID2"]
 def load_google_drive_documents():
     """Load documents from Google Drive and cache the result."""
     loader = GoogleDriveLoader(
-        folder_id=folder_ids,
+        folder_id=[folder_ids],
         credentials_path=credentials_path,
         token_path=token_path,
         file_types=["document", "sheet"],
