@@ -70,7 +70,7 @@ def load_google_drive_documents():
         folder_id= st.secrets['GOOGLE_DRIVE_FOLDER_ID'],
         credentials_path=credentials_path,
         token_path=token_path,
-        # file_types=["document", "sheet"],
+        file_types=["document", "sheet", "pdf"],
         file_loader_cls=UnstructuredFileIOLoader,
         file_loader_kwargs={"mode": "elements"},
         recursive=False,
